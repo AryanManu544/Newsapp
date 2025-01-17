@@ -1,7 +1,19 @@
 import React, { Component } from "react";
 import Newsitem from "./Newsitem";
+import PropTypes from "prop-types";
+import Loading from "./Loading"; // Import the fixed Loading component
+
+
 
 export class News extends Component {
+  static defaultProps={
+    pageSize: 15,
+    category: "General",
+  }
+  static propTypes ={
+    pageSize: PropTypes.number,
+    category: PropTypes.string
+  }
   constructor() {
     super();
     this.state = {
@@ -15,7 +27,7 @@ export class News extends Component {
   async fetchNews(page) {
     try {
       this.setState({ loading: true });
-      let url = `https://newsapi.org/v2/top-headlines?country=us&apiKey=eb29df728c084c6680eff7a710da3dff&page=${page}&pageSize=20`;
+      let url = `https://newsapi.org/v2/top-headlines?category=${this.props.category}&apiKey=eb29df728c084c6680eff7a710da3dff&page=${page}&pageSize=${this.props.pageSize}`;
       let data = await fetch(url);
       let parsedData = await data.json();
 
@@ -43,10 +55,16 @@ export class News extends Component {
   async componentDidMount() {
     this.fetchNews(this.state.page);
   }
+  async componentDidUpdate(prevProps) {
+    if (this.props.category !== prevProps.category) {
+      this.fetchNews(this.state.page); 
+    }
+  }
+  
 
   handlenextclick = async () => {
     const { page, totalResults } = this.state;
-    const totalPages = Math.ceil(totalResults / 20);
+    const totalPages = Math.ceil(totalResults / this.props.pageSize);
 
     if (page < totalPages) {
       this.fetchNews(page + 1);
@@ -63,12 +81,17 @@ export class News extends Component {
 
   render() {
     const { articles, loading, page, totalResults } = this.state;
-    const totalPages = Math.ceil(totalResults / 20);
+    const totalPages = Math.ceil(totalResults / this.props.pageSize);
 
     return (
       <div className="container my-3">
         <h2 className="text-center">NewsApp - Top Headlines</h2>
-        {loading && <div className="text-center">Loading...</div>}
+        {loading &&  (
+        <div className="text-center">
+          loading <Loading />
+        </div>
+        )}
+
         <div className="row">
           {!loading && articles && articles.length > 0 ? (
             articles.map((element) => (
@@ -78,6 +101,9 @@ export class News extends Component {
                   description={element.description ? element.description.slice(0, 88) : "No description available"}
                   imageurl={element.urlToImage}
                   newsurl={element.url}
+                  author={element.author}
+                  date={element.publishedAt}
+                  source={element.source.name}
                 />
               </div>
             ))
