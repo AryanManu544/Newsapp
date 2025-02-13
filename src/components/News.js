@@ -1,19 +1,19 @@
 import React, { Component } from "react";
 import Newsitem from "./Newsitem";
 import PropTypes from "prop-types";
-import Loading from "./Loading"; // Import the fixed Loading component
-
-
+import Loading from "./Loading";
 
 export class News extends Component {
-  static defaultProps={
-    pageSize: 15,
-    category: "General",
-  }
-  static propTypes ={
+  static defaultProps = {
+    pageSize: 10,
+    category: "general",
+  };
+
+  static propTypes = {
     pageSize: PropTypes.number,
-    category: PropTypes.string
-  }
+    category: PropTypes.string,
+  };
+
   constructor() {
     super();
     this.state = {
@@ -27,22 +27,26 @@ export class News extends Component {
   async fetchNews(page) {
     try {
       this.setState({ loading: true });
-      let url = `https://newsapi.org/v2/top-headlines?category=${this.props.category}&apiKey=eb29df728c084c6680eff7a710da3dff&page=${page}&pageSize=${this.props.pageSize}`;
+      let url = `https://gnews.io/api/v4/top-headlines?category=${
+        this.props.category
+      }&lang=en&country=us&apikey=82cb181efa8b741d872714b4a8bfb248&max=${
+        this.props.pageSize
+      }&page=${page}`;
+
       let data = await fetch(url);
       let parsedData = await data.json();
 
-      // Filter out articles with missing fields
       const validArticles = parsedData.articles.filter(
         (article) =>
           article.title &&
           article.description &&
           article.url &&
-          article.urlToImage
+          article.image
       );
 
       this.setState({
         articles: validArticles || [],
-        totalResults: parsedData.totalResults,
+        totalResults: parsedData.totalArticles,
         loading: false,
         page: page,
       });
@@ -55,12 +59,12 @@ export class News extends Component {
   async componentDidMount() {
     this.fetchNews(this.state.page);
   }
+
   async componentDidUpdate(prevProps) {
     if (this.props.category !== prevProps.category) {
-      this.fetchNews(this.state.page); 
+      this.fetchNews(this.state.page);
     }
   }
-  
 
   handlenextclick = async () => {
     const { page, totalResults } = this.state;
@@ -86,10 +90,10 @@ export class News extends Component {
     return (
       <div className="container my-3">
         <h2 className="text-center">NewsApp - Top Headlines</h2>
-        {loading &&  (
-        <div className="text-center">
-          loading <Loading />
-        </div>
+        {loading && (
+          <div className="text-center">
+            Loading <Loading />
+          </div>
         )}
 
         <div className="row">
@@ -98,12 +102,15 @@ export class News extends Component {
               <div className="col-md-4 my-3" key={element.url}>
                 <Newsitem
                   title={element.title ? element.title.slice(0, 45) : "No Title"}
-                  description={element.description ? element.description.slice(0, 88) : "No description available"}
-                  imageurl={element.urlToImage}
+                  description={
+                    element.description
+                      ? element.description.slice(0, 88)
+                      : "No description available"
+                  }
+                  imageurl={element.image}
                   newsurl={element.url}
-                  author={element.author}
                   date={element.publishedAt}
-                  source={element.source.name}
+                  source={element.source?.name || "Unknown source"}
                 />
               </div>
             ))
@@ -111,6 +118,7 @@ export class News extends Component {
             !loading && <p>No articles available</p>
           )}
         </div>
+
         <div className="container d-flex justify-content-between">
           <button
             disabled={page <= 1}
